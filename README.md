@@ -7,7 +7,7 @@ Jannos-443
 
 ## Project Details
 
-Using VMWare PowerCLI this Script checks VMware VM Status for example VMware Tools, Heartbeat, CDDrive Connected or Overall State
+Using VMWare PowerCLI this Script checks VMware VM Status for example VMware Tools, Heartbeat, CDDrive Connected and Overall State
 
 ## HOW TO
 
