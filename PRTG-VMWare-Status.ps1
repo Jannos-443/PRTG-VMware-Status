@@ -141,45 +141,48 @@ $OverAllFail_Text = "Overall Status Failed: "
 
 Foreach ($VM in $VMs)
     {
-
-    #CD Drive Connected
-    If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
-	    {
-	    $null = $CDConnected.Add($VM)
-        $CDConnected_Text += "$($VM.Name); "
-	    }
-
-    #VMWare Tools Status
-    $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
-    If($toolsStatus -ne "toolsOk")
-	    {
-	    $null = $ToolsStatusNotOK.Add($VM)
-        $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
-	    }
-
-    #Heartbeat Status
-    $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
-    if($heartbeatstatus -eq "green")
+    #Nur Online VMs prüfen
+    if($VM.PowerState -eq "PoweredOn")
         {
-        $null = $heartbeatok.Add($VM)
-        }  
-    else
-        {
-        $null = $heartbeatfail.Add($VM)
-        $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
-        }
+        #CD Drive Connected
+        If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
+	        {
+	        $null = $CDConnected.Add($VM)
+            $CDConnected_Text += "$($VM.Name); "
+	        }
+
+        #VMWare Tools Status
+        $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
+        If($toolsStatus -ne "toolsOk")
+	        {
+	        $null = $ToolsStatusNotOK.Add($VM)
+            $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
+	        }
+
+        #Heartbeat Status
+        $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
+        if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
+            {
+            $null = $heartbeatfail.Add($VM)
+            $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
+            }  
+        else
+            {
+            $null = $heartbeatok.Add($VM)
+            }
 
 
-    #Overall Status
-    $OverallStatus = $VM.ExtensionData.OverallStatus
-    if($OverallStatus -eq "green")
-        {
-        $null = $overallok.Add($VM)
-        }  
-    else
-        {
-        $null = $overallfail.Add($VM)
-        $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+        #Overall Status
+        $OverallStatus = $VM.ExtensionData.OverallStatus
+        if($OverallStatus -eq "green")
+            {
+            $null = $overallok.Add($VM)
+            }  
+        else
+            {
+            $null = $overallfail.Add($VM)
+            $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+            }
         }
     }
 
