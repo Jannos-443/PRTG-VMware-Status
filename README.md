@@ -11,18 +11,24 @@ Using VMWare PowerCLI this Script checks VMware VM Status for example VMware Too
 
 ## HOW TO
 
-1. Download PSx64.exe from PRTG Tools Familiy https://prtgtoolsfamily.com/downloads/sensors
+1. Make sure the VMware PowerCLI Module exists on the Probe under the Powershell Module Path
+   - `C:\Program Files\WindowsPowerShell\Modules\VMware.VimAutomation.Core`
 
-2. Make sure the VMware PowerCLI Module exists on the Probe under the Powershell Module Path
-   - C:\Program Files\WindowsPowerShell\Modules\VMware.VimAutomation.Core
+2. Place `PRTG-VMware-Snapshot-Status.ps1` under `C:\Program Files (x86)\PRTG Network Monitor\Custom Sensors\EXEXML`
 
-3. Place "PSx64.exe" and "PRTG-VMware-Status.ps1" under "C:\Program Files (x86)\PRTG Network Monitor\Custom Sensors\EXEXML"
+3. Create new Sensor
 
-4. Create new Sensor PSx64.exe -f="PRTG-VMware-Status.ps1" -p="%VCenter%" "%Username%" "%PW%"
-   - Set "Scanning Interval" to min "10 minutes"
+   | Settings | Value |
+   | --- | --- |
+   | EXE/Script | PRTG-VMware-Status.ps1 |
+   | Parameters | -ViServer 'yourVCenter' -User 'yourUser' -Password 'yourPassword' |
+   | Scanning Interval | 10 minutes |
 
 
-5. Set the **VM exceptions** parameter to Exclude Alarms
+4. Set the "$IgnorePattern" parameter to exclude VMs
+   
+   example: `-IgnorePattern '(Test-VM-123)'`
+ 
 
 ## Examples
 ![PRTG-VMware-Status](media/VMware-Status-Error.png)
