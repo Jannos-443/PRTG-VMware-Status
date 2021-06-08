@@ -51,22 +51,48 @@ param(
 
 #Catch all unhandled Errors
 trap{
-    $null = Disconnect-VIServer -Server $ViServer -Confirm:$false -ErrorAction SilentlyContinue
-    Write-Error $_.ToString()
-    Write-Error $_.ScriptStackTrace
+    if($connected)
+        {
+        $null = Disconnect-VIServer -Server $ViServer -Confirm:$false -ErrorAction SilentlyContinue
+        }
+    $Output = "line:$($_.InvocationInfo.ScriptLineNumber.ToString()) char:$($_.InvocationInfo.OffsetInLine.ToString()) --- message: $($_.Exception.Message.ToString()) --- line: $($_.InvocationInfo.Line.ToString()) "
+    $Output = $Output.Replace("<","")
+    $Output = $Output.Replace(">","")
     Write-Output "<prtg>"
-    Write-Output " <error>1</error>"
-    Write-Output " <text>$($_.ToString() - $($_.ScriptStackTrace))</text>"
+    Write-Output "<error>1</error>"
+    Write-Output "<text>$Output</text>"
     Write-Output "</prtg>"
     Exit
 }
 
+#https://stackoverflow.com/questions/19055924/how-to-launch-64-bit-powershell-from-32-bit-cmd-exe
+#############################################################################
+#If Powershell is running the 32-bit version on a 64-bit machine, we 
+#need to force powershell to run in 64-bit mode .
+#############################################################################
+if ($env:PROCESSOR_ARCHITEW6432 -eq "AMD64") {
+    #Write-warning  "Y'arg Matey, we're off to 64-bit land....."
+    if ($myInvocation.Line) {
+        &"$env:WINDIR\sysnative\windowspowershell\v1.0\powershell.exe" -NonInteractive -NoProfile $myInvocation.Line
+    }else{
+        &"$env:WINDIR\sysnative\windowspowershell\v1.0\powershell.exe" -NonInteractive -NoProfile -file "$($myInvocation.InvocationName)" $args
+    }
+exit $lastexitcode
+}
+
+#############################################################################
+#End
+#############################################################################    
+
+$connected = $false
+
+# Error if there's anything going on
+$ErrorActionPreference = "Stop"
+
 
 # Import VMware PowerCLI module
-$ViModule = "VMware.VimAutomation.Core"
-
 try {
-    Import-Module $ViModule -ErrorAction Stop
+    Import-Module "VMware.VimAutomation.Core" -ErrorAction Stop
 } catch {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
@@ -92,14 +118,19 @@ catch
 
 # Connect to vCenter
 try {
-    Connect-VIServer -Server $ViServer -User $User -Password $Password -ErrorAction Stop | Out-Null
-} catch {
+    Connect-VIServer -Server $ViServer -User $User -Password $Password
+            
+    $connected = $true
+    }
+ 
+catch
+    {
     Write-Output "<prtg>"
     Write-Output " <error>1</error>"
     Write-Output " <text>Could not connect to vCenter server $ViServer. Error: $($_.Exception.Message)</text>"
     Write-Output "</prtg>"
     Exit
-}
+    }
 
 #Get List of all VMs
 try {
@@ -150,17 +181,17 @@ $OverAllFail_Text = "Overall Status Failed: "
 
 Foreach ($VM in $VMs)
     {
-    #Nur Online VMs pr�fen
+    #only check online VMs
     if($VM.PowerState -eq "PoweredOn")
         {
-        #CD Drive Connected
+        #CD Drive connected
         If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
 	        {
 	        $null = $CDConnected.Add($VM)
             $CDConnected_Text += "$($VM.Name); "
 	        }
 
-        #VMWare Tools Status
+        #VMWare Tools status
         $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
         If($toolsStatus -ne "toolsOk")
 	        {
@@ -168,7 +199,7 @@ Foreach ($VM in $VMs)
             $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
 	        }
 
-        #Heartbeat Status
+        #Heartbeat status
         $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
         if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
             {
@@ -181,7 +212,7 @@ Foreach ($VM in $VMs)
             }
 
 
-        #Overall Status
+        #Overall status
         $OverallStatus = $VM.ExtensionData.OverallStatus
         if($OverallStatus -eq "green")
             {
@@ -224,7 +255,7 @@ if($overallfail.Count -gt 0)
     }
 
 
-#Text Exists = Fails Found
+#Text exists = problems found
 if($OutputText -ne "")
     {
     $xmlOutput = $xmlOutput + "<text>$OutputText</text>"
@@ -238,6 +269,7 @@ else
 # Disconnect from vCenter
 Disconnect-VIServer -Server $ViServer -Confirm:$false
 
+$connected = $false
 
 $xmlOutput = $xmlOutput + "<result>
         <channel>VMs Total</channel>
