@@ -75,11 +75,20 @@ try {
     Exit
 }
 
-#avoid unecessary output
-Set-PowerCLIConfiguration -Scope User -ParticipateInCEIP:$false -confirm:$false
+# PowerCLI Configuration Settings
+try
+    {
+    #Ignore certificate warnings
+    Set-PowerCLIConfiguration -InvalidCertificateAction ignore -Scope User -Confirm:$false | Out-Null
 
-# Ignore certificate warnings
-Set-PowerCLIConfiguration -InvalidCertificateAction ignore -confirm:$false | Out-Null
+    #Disable CEIP
+    Set-PowerCLIConfiguration -ParticipateInCeip $false -Scope User -Confirm:$false | Out-Null
+    }
+
+catch
+    {
+    Write-Host "Error in Set-PowerCLIConfiguration but we will ignore it." #Error when another Script is currently accessing it.
+    }
 
 # Connect to vCenter
 try {
@@ -106,8 +115,8 @@ try {
 
 
 #Count before Filter
-$PoweredOnVMs = ($VMs | where {$_.PowerState -eq "PoweredOn"}).Count
-$PoweredOffVMs = ($VMs | where {$_.PowerState -eq "PoweredOff"}).Count
+$PoweredOnVMs = ($VMs | Where-Object {$_.PowerState -eq "PoweredOn"}).Count
+$PoweredOffVMs = ($VMs | Where-Object {$_.PowerState -eq "PoweredOff"}).Count
 $CountVMs = $VMs.Count
 
 #Filter VMs
@@ -117,11 +126,11 @@ $IgnoreScript = '^(TestIgnore)$'
 
 #Remove Ignored VMs
 if ($IgnorePattern -ne "") {
-    $VMsFilter = $VMs | where {$_.Name -notmatch $IgnorePattern}  
+    $VMs = $VMs | Where-Object {$_.Name -notmatch $IgnorePattern}  
 }
 
 if ($IgnoreScript -ne "") {
-    $VMs = $VMs | where {$_.Name -notmatch $IgnoreScript}  
+    $VMs = $VMs | Where-Object {$_.Name -notmatch $IgnoreScript}  
 }
 
 
@@ -141,7 +150,7 @@ $OverAllFail_Text = "Overall Status Failed: "
 
 Foreach ($VM in $VMs)
     {
-    #Nur Online VMs prüfen
+    #Nur Online VMs prï¿½fen
     if($VM.PowerState -eq "PoweredOn")
         {
         #CD Drive Connected
