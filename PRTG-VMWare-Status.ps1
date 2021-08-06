@@ -46,7 +46,12 @@ param(
     [string] $ViServer = "",
 	[string] $User = "",
 	[string] $Password = "",
-    [string] $IgnorePattern = ""
+    [string] $IgnorePattern = "",
+    [boolean] $VMTools = $True,
+    [boolean] $VMHeartbeat = $True,
+    [boolean] $VMStatus = $True,
+    [boolean] $VMCDConnected = $True,
+    [boolean] $StoragePath = $True
 )
 
 #Catch all unhandled Errors
@@ -172,12 +177,14 @@ $heartbeatfail = New-Object System.Collections.ArrayList
 $heartbeatok = New-Object System.Collections.ArrayList
 $overallok = New-Object System.Collections.ArrayList
 $overallfail = New-Object System.Collections.ArrayList
+$StoragePathFail = New-Object System.Collections.ArrayList
 
 #Text Messages
 $CDConnected_Text = "VMs with CD: "
 $ToolsStatusNotOK_Text = "VMTools Problems: "
 $HeaertbeatFail_Text = "Heartbeat Failed: "
 $OverAllFail_Text = "Overall Status Failed: "
+$StoragePath_Text = "Storage Paths: "
 
 Foreach ($VM in $VMs)
     {
@@ -185,47 +192,72 @@ Foreach ($VM in $VMs)
     if($VM.PowerState -eq "PoweredOn")
         {
         #CD Drive connected
-        If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
-	        {
-	        $null = $CDConnected.Add($VM)
-            $CDConnected_Text += "$($VM.Name); "
-	        }
-
-        #VMWare Tools status
-        $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
-        If($toolsStatus -ne "toolsOk")
-	        {
-	        $null = $ToolsStatusNotOK.Add($VM)
-            $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
-	        }
-
-        #Heartbeat status
-        $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
-        if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
+        if($VMCDConnected)
             {
-            $null = $heartbeatfail.Add($VM)
-            $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
-            }  
-        else
-            {
-            $null = $heartbeatok.Add($VM)
+            If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
+                {
+                $null = $CDConnected.Add($VM)
+                $CDConnected_Text += "$($VM.Name); "
+                }
             }
 
+        #VMWare Tools status
+        if($VMTools)
+            {
+            $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
+            If($toolsStatus -ne "toolsOk")
+                {
+                $null = $ToolsStatusNotOK.Add($VM)
+                $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
+                }
+            }
+        
+        #Heartbeat status
+        if($VMHeartbeat)
+            {
+            $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
+            if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
+                {
+                $null = $heartbeatfail.Add($VM)
+                $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
+                }  
+            else
+                {
+                $null = $heartbeatok.Add($VM)
+                }
+            }
 
         #Overall status
-        $OverallStatus = $VM.ExtensionData.OverallStatus
-        if($OverallStatus -eq "green")
+        if($VMStatus)
             {
-            $null = $overallok.Add($VM)
-            }  
-        else
-            {
-            $null = $overallfail.Add($VM)
-            $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+            $OverallStatus = $VM.ExtensionData.OverallStatus
+            if($OverallStatus -eq "green")
+                {
+                $null = $overallok.Add($VM)
+                }  
+            else
+                {
+                $null = $overallfail.Add($VM)
+                $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+                }
             }
         }
     }
 
+## Storage Path Monitoring
+if($StoragePath)
+    {
+    $EXHosts = Get-VMHost 
+    foreach ($EXHost in $EXHosts)
+        {
+        $HBAs = Get-VMHostHba -VMHost $EXHost -Type "FibreChannel" | Where-Object {$_.status -ne "online"}
+        foreach($HBA in $HBAs)
+            {
+            $null = $StoragePathFail.Add($HBA) 
+            $StoragePath_Text += "$($EXHost.name) HBA $($HBA.device) is $($HBA.status); "
+            }
+        }
+    }
 
 
 $xmlOutput = '<prtg>'
@@ -234,25 +266,47 @@ $xmlOutput = '<prtg>'
 # Output Text
 $OutputText =""
 
-if($CDConnected.Count -gt 0)
+if($VMCDConnected)
     {
-    $OutputText += "$($CDConnected_Text) ##"
+    if($CDConnected.Count -gt 0)
+        {
+        $OutputText += "$($CDConnected_Text) ##"
+        }
     }
 
-if($ToolsStatusNotOK.Count -gt 0)
+if($VMTools)
     {
-    $OutputText += "$($ToolsStatusNotOK_Text) ##"
+    if($ToolsStatusNotOK.Count -gt 0)
+        {
+        $OutputText += "$($ToolsStatusNotOK_Text) ##"
+        }
     }
 
-if($heartbeatfail.Count -gt 0)
+if($VMHeartbeat)
     {
-    $OutputText += "$($HeaertbeatFail_Text) ##"
+    if($heartbeatfail.Count -gt 0)
+        {
+        $OutputText += "$($HeaertbeatFail_Text) ##"
+        }
     }
 
-if($overallfail.Count -gt 0)
+
+if($VMStatus)
     {
-    $OutputText += "$($OverAllFail_Text) ##"
+    if($overallfail.Count -gt 0)
+        {
+        $OutputText += "$($OverAllFail_Text) ##"
+        }
     }
+
+if($StoragePath)
+    {
+    if($StoragePathFail.Count -gt 0)
+        {
+        $OutputText += "$($StoragePath_Text) ##"
+        }
+    }
+
 
 
 #Text exists = problems found
@@ -275,61 +329,86 @@ $xmlOutput = $xmlOutput + "<result>
         <channel>VMs Total</channel>
         <value>$CountVMs</value>
         <unit>Count</unit>
-        </result>
+        </result>"
         
-        <result>
-        <channel>VMs Heartbeat OK</channel>
-        <value>$($heartbeatok.Count)</value>
-        <unit>Count</unit>
-        </result>
+        if($VMHeartbeat)
+            {
+            $xmlOutput = $xmlOutput + "<result>
+            <channel>VMs Heartbeat OK</channel>
+            <value>$($heartbeatok.Count)</value>
+            <unit>Count</unit>
+            </result>
 
-        <result>
-        <channel>VMs Heartbeat Failed</channel>
-        <value>$($heartbeatfail.Count)</value>
-        <unit>Count</unit>
-        <limitmode>1</limitmode>
-        <LimitMaxError>0.1</LimitMaxError>
-        </result>
+            <result>
+            <channel>VMs Heartbeat Failed</channel>
+            <value>$($heartbeatfail.Count)</value>
+            <unit>Count</unit>
+            <limitmode>1</limitmode>
+            <LimitMaxError>0.1</LimitMaxError>
+            </result>"
+            }
 
-        <result>
-        <channel>VMs Status OK</channel>
-        <value>$($overallok.Count)</value>
-        <unit>Count</unit>
-        </result>
+        if($VMStatus)
+            {
+            $xmlOutput = $xmlOutput + "<result>
+            <channel>VMs Status OK</channel>
+            <value>$($overallok.Count)</value>
+            <unit>Count</unit>
+            </result>
 
-        <result>
-        <channel>VMs Status Failed</channel>
-        <value>$($overallfail.Count)</value>
-        <unit>Count</unit>
-        <limitmode>1</limitmode>
-        <LimitMaxError>0.1</LimitMaxError>
-        </result>
+            <result>
+            <channel>VMs Status Failed</channel>
+            <value>$($overallfail.Count)</value>
+            <unit>Count</unit>
+            <limitmode>1</limitmode>
+            <LimitMaxError>0.1</LimitMaxError>
+            </result>" 
+            }
+        
+        if($VMCDConnected)
+            {
+            $xmlOutput = $xmlOutput + "<result>
+            <channel>VMs with CD Connected</channel>
+            <value>$($CDConnected.Count)</value>
+            <unit>Count</unit>
+            <limitmode>1</limitmode>
+            <LimitMaxWarning>0.1</LimitMaxWarning>
+            </result>"
+            }
 
-        <result>
-        <channel>VMs with CD Connected</channel>
-        <value>$($CDConnected.Count)</value>
-        <unit>Count</unit>
-        <limitmode>1</limitmode>
-        <LimitMaxWarning>0.1</LimitMaxWarning>
-        </result>
+        if($VMTools)
+            {
+            $xmlOutput = $xmlOutput + "<result>
+            <channel>Tools old or not running</channel>
+            <value>$($ToolsStatusNotOK.Count)</value>
+            <unit>Count</unit>
+            <limitmode>1</limitmode>
+            <LimitMaxWarning>0.1</LimitMaxWarning>
+            </result>"   
+            }
 
-        <result>
-        <channel>Tools old or not running</channel>
-        <value>$($ToolsStatusNotOK.Count)</value>
-        <unit>Count</unit>
-        <limitmode>1</limitmode>
-        <LimitMaxWarning>0.1</LimitMaxWarning>
-        </result>
+        
+        if($StoragePath)
+            {
+            $xmlOutput = $xmlOutput + "<result>
+            <channel>Storage Path Failed</channel>
+            <value>$($StoragePathFail.Count)</value>
+            <unit>Count</unit>
+            <limitmode>1</limitmode>
+            <LimitMaxWarning>0.1</LimitMaxWarning>
+            </result>"
+            }
+        
 
-        <result>
+        $xmlOutput = $xmlOutput + "<result>
         <channel>VMs PoweredOff</channel>
-        <value>$PoweredOffVMs</value>
+        <value>$($PoweredOffVMs)</value>
         <unit>Count</unit>
         </result>
         
         <result>
         <channel>VMs PoweredOn</channel>
-        <value>$PoweredOnVMs</value>
+        <value>$($PoweredOnVMs)</value>
         <unit>Count</unit>
         </result>"   
         
