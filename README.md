@@ -27,7 +27,7 @@ Using VMWare PowerCLI this Script checks VMware VM Status for example VMware Too
 
 4. Set the "$IgnorePattern" parameter to exclude VMs
    
-   example: `-IgnorePattern '(Test-VM-123)'`
+   example: `-IgnorePattern '^(Test-VM-123)$'`
  
 
 ## Examples

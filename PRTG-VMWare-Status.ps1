@@ -47,6 +47,8 @@ param(
 	[string] $User = "",
 	[string] $Password = "",
     [string] $IgnorePattern = "",
+    [string] $ExcludeFolder = '',
+    [string] $ExcludeRessource = '',
     [boolean] $VMTools = $True,
     [boolean] $VMHeartbeat = $True,
     [boolean] $VMStatus = $True,
@@ -169,6 +171,13 @@ if ($IgnoreScript -ne "") {
     $VMs = $VMs | Where-Object {$_.Name -notmatch $IgnoreScript}  
 }
 
+if ($ExcludeFolder -ne "") {
+    $VMs = $VMs | Where-Object {$_.Folder.Name -notmatch $ExcludeFolder}  
+}
+
+if ($ExcludeRessource -ne "") {
+    $VMs = $VMs | Where-Object {$_.ResourcePool.Name -notmatch $ExcludeRessource}  
+}
 
 #Count VMs
 $CDConnected = New-Object System.Collections.ArrayList
