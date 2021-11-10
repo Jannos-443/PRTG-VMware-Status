@@ -20,7 +20,7 @@ Using VMWare PowerCLI this Script checks VMware VM Status for example VMware Too
 
    | Settings | Value |
    | --- | --- |
-   | EXE/Script | PRTG-VMware-Status.ps1 |
+   | EXE/Script Advanced | PRTG-VMware-Status.ps1 |
    | Parameters | -ViServer 'yourVCenter' -User 'yourUser' -Password 'yourPassword' |
    | Scanning Interval | 10 minutes |
 
