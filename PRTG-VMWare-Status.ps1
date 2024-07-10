@@ -49,6 +49,11 @@ param(
     [string] $IgnorePattern = "",
     [string] $ExcludeFolder = '',
     [string] $ExcludeRessource = '',
+    [string] $ExcludeVM_VMTools = '',
+    [string] $ExcludeVM_VMHeartbeat = '',
+    [string] $ExcludeVM_VMStatus = '',
+    [string] $ExcludeVM_VMCDConnected = '',
+    [string] $ExcludeVM_StoragePath = '',
     [boolean] $VMTools = $True,
     [boolean] $VMHeartbeat = $True,
     [boolean] $VMStatus = $True,
@@ -217,51 +222,59 @@ Foreach ($VM in $VMs)
         #CD Drive connected
         if($VMCDConnected)
             {
-            If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
-                {
-                $null = $CDConnected.Add($VM)
-                $CDConnected_Text += "$($VM.Name); "
+            if(($ExcludeVM_VMCDConnected -ne "") -and ($ExcludeVM_VMCDConnected -match $VM.name)){
+                If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
+                    {
+                    $null = $CDConnected.Add($VM)
+                    $CDConnected_Text += "$($VM.Name); "
+                    }
                 }
             }
 
         #VMWare Tools status
         if($VMTools)
             {
-            $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
-            If($toolsStatus -ne "toolsOk")
-                {
-                $null = $ToolsStatusNotOK.Add($VM)
-                $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
+            if(($ExcludeVM_VMTools -ne "") -and ($ExcludeVM_VMTools -match $VM.name)){
+                $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
+                If($toolsStatus -ne "toolsOk")
+                    {
+                    $null = $ToolsStatusNotOK.Add($VM)
+                    $ToolsStatusNotOK_Text += "$($VM.Name)=$($toolsStatus); "
+                    }
                 }
             }
         
         #Heartbeat status
         if($VMHeartbeat)
             {
-            $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
-            if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
-                {
-                $null = $heartbeatfail.Add($VM)
-                $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
-                }  
-            else
-                {
-                $null = $heartbeatok.Add($VM)
+            if(($ExcludeVM_VMHeartbeat -ne "") -and ($ExcludeVM_VMHeartbeat -match $VM.name)){
+                $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
+                if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
+                    {
+                    $null = $heartbeatfail.Add($VM)
+                    $HeaertbeatFail_Text += "$($VM.Name)=$($heartbeatstatus); "
+                    }  
+                else
+                    {
+                    $null = $heartbeatok.Add($VM)
+                    }
                 }
             }
 
         #Overall status
         if($VMStatus)
             {
-            $OverallStatus = $VM.ExtensionData.OverallStatus
-            if($OverallStatus -eq "green")
-                {
-                $null = $overallok.Add($VM)
-                }  
-            else
-                {
-                $null = $overallfail.Add($VM)
-                $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+            if(($ExcludeVM_VMStatus -ne "") -and ($ExcludeVM_VMStatus -match $VM.name)){
+                $OverallStatus = $VM.ExtensionData.OverallStatus
+                if($OverallStatus -eq "green")
+                    {
+                    $null = $overallok.Add($VM)
+                    }  
+                else
+                    {
+                    $null = $overallfail.Add($VM)
+                    $OverAllFail_Text += "$($VM.Name)=$($OverallStatus); "
+                    }
                 }
             }
         }
@@ -270,14 +283,16 @@ Foreach ($VM in $VMs)
 ## Storage Path Monitoring
 if($StoragePath)
     {
-    $EXHosts = Get-VMHost 
-    foreach ($EXHost in $EXHosts)
-        {
-        $HBAs = Get-VMHostHba -VMHost $EXHost -Type "FibreChannel" | Where-Object {$_.status -ne "online"}
-        foreach($HBA in $HBAs)
+    if(($ExcludeVM_StoragePath -ne "") -and ($ExcludeVM_StoragePath -match $VM.name)){
+        $EXHosts = Get-VMHost 
+        foreach ($EXHost in $EXHosts)
             {
-            $null = $StoragePathFail.Add($HBA) 
-            $StoragePath_Text += "$($EXHost.name) HBA $($HBA.device) is $($HBA.status); "
+            $HBAs = Get-VMHostHba -VMHost $EXHost -Type "FibreChannel" | Where-Object {$_.status -ne "online"}
+            foreach($HBA in $HBAs)
+                {
+                $null = $StoragePathFail.Add($HBA) 
+                $StoragePath_Text += "$($EXHost.name) HBA $($HBA.device) is $($HBA.status); "
+                }
             }
         }
     }
