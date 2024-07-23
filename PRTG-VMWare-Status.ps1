@@ -53,7 +53,6 @@ param(
     [string] $ExcludeVM_VMHeartbeat = '',
     [string] $ExcludeVM_VMStatus = '',
     [string] $ExcludeVM_VMCDConnected = '',
-    [string] $ExcludeVM_StoragePath = '',
     [boolean] $VMTools = $True,
     [boolean] $VMHeartbeat = $True,
     [boolean] $VMStatus = $True,
@@ -283,16 +282,14 @@ Foreach ($VM in $VMs)
 ## Storage Path Monitoring
 if($StoragePath)
     {
-    if(($ExcludeVM_StoragePath -ne "") -and ($ExcludeVM_StoragePath -match $VM.name)){
-        $EXHosts = Get-VMHost 
-        foreach ($EXHost in $EXHosts)
+    $EXHosts = Get-VMHost 
+    foreach ($EXHost in $EXHosts)
+        {
+        $HBAs = Get-VMHostHba -VMHost $EXHost -Type "FibreChannel" | Where-Object {$_.status -ne "online"}
+        foreach($HBA in $HBAs)
             {
-            $HBAs = Get-VMHostHba -VMHost $EXHost -Type "FibreChannel" | Where-Object {$_.status -ne "online"}
-            foreach($HBA in $HBAs)
-                {
-                $null = $StoragePathFail.Add($HBA) 
-                $StoragePath_Text += "$($EXHost.name) HBA $($HBA.device) is $($HBA.status); "
-                }
+            $null = $StoragePathFail.Add($HBA) 
+            $StoragePath_Text += "$($EXHost.name) HBA $($HBA.device) is $($HBA.status); "
             }
         }
     }
