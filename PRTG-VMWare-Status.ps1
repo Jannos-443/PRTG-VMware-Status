@@ -25,15 +25,36 @@
     .PARAMETER IgnorePattern
     Regular expression to describe the VM Name to Ignore Alerts and Warnings from.
 
-    Example: ^(DemoTestServer|DemoAusname2)$
+    Example1: ^(Test123|VM3)$ excludes Test123 and VM3
 
-    Example2: ^(Test123.*|TestPrinter555)$ excluded Test12345
+    Example2: ^(Test123.*|VM3)$ excluded Test123* (also Test123-somename) and VM3
 
     #https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7.1
     
+		.PARAMETER ExcludeFolder
+		Regular expression to exclude vmware folder
+
+		.PARAMETER ExcludeFolder
+		Regular expression to exclude vmware folder
+
+		.PARAMETER ExcludeRessource
+		Regular expression to exclude vmware ressource
+
+		.PARAMETER ExcludeVM_VMTools
+		Regular expression to exclude a vm by name from this kind of check
+
+		.PARAMETER ExcludeVM_VMHeartbeat
+		Regular expression to exclude a vm by name from this kind of check
+
+		.PARAMETER ExcludeVM_VMStatus
+		Regular expression to exclude a vm by name from this kind of check
+
+		.PARAMETER ExcludeVM_VMCDConnected
+		Regular expression to exclude a vm by name from this kind of check
+
     .EXAMPLE
     Sample call from PRTG EXE/Script Advanced
-    PSx64.exe -f="PRTG-VMware-Status.ps1" -p="%VCenter%" "%Username%" "%PW%"
+    "PRTG-VMware-Status.ps1" -ViServer "YourVcenter" -User "YourUser" -Password "YourPassword"
 
     .NOTES
     This script is based on the sample by Paessler (https://kb.paessler.com/en/topic/70174-monitor-vcenter)
@@ -44,8 +65,8 @@
 #>
 param(
     [string] $ViServer = "",
-	[string] $User = "",
-	[string] $Password = "",
+	  [string] $User = "",
+	  [string] $Password = "",
     [string] $IgnorePattern = "",
     [string] $ExcludeFolder = '',
     [string] $ExcludeRessource = '',
@@ -221,7 +242,14 @@ Foreach ($VM in $VMs)
         #CD Drive connected
         if($VMCDConnected)
             {
-            if(($ExcludeVM_VMCDConnected -ne "") -and ($ExcludeVM_VMCDConnected -match $VM.name)){
+						$exclude = $false
+						if(($ExcludeVM_VMCDConnected -ne "") and ($ExcludeVM_VMCDConnected -ne $null)){
+							if($VM.name -match $ExcludeVM_VMCDConnected){
+								$exlude = $true
+								}
+						}
+
+            if(-not $exclude){
                 If((Get-CDDrive -VM $VM).ConnectionState.Connected -eq"True")
                     {
                     $null = $CDConnected.Add($VM)
@@ -233,7 +261,14 @@ Foreach ($VM in $VMs)
         #VMWare Tools status
         if($VMTools)
             {
-            if(($ExcludeVM_VMTools -ne "") -and ($ExcludeVM_VMTools -match $VM.name)){
+						$exclude = $false
+						if(($ExcludeVM_VMTools -ne "") and ($ExcludeVM_VMTools -ne $null)){
+							if($VM.name -match $ExcludeVM_VMTools){
+								$exlude = $true
+								}
+						}
+
+            if(-not $exclude){
                 $toolsStatus = (Get-View -VIObject $VM).Guest.ToolsStatus
                 If($toolsStatus -ne "toolsOk")
                     {
@@ -246,7 +281,14 @@ Foreach ($VM in $VMs)
         #Heartbeat status
         if($VMHeartbeat)
             {
-            if(($ExcludeVM_VMHeartbeat -ne "") -and ($ExcludeVM_VMHeartbeat -match $VM.name)){
+						$exclude = $false
+						if(($ExcludeVM_VMHeartbeat -ne "") and ($ExcludeVM_VMHeartbeat -ne $null)){
+							if($VM.name -match $ExcludeVM_VMHeartbeat){
+								$exlude = $true
+								}
+						}
+
+            if(-not $exclude){
                 $heartbeatstatus = $VM.ExtensionData.GuestHeartbeatStatus
                 if(($heartbeatstatus -ne "green") -and ($heartbeatstatus -ne "gray"))
                     {
@@ -263,7 +305,14 @@ Foreach ($VM in $VMs)
         #Overall status
         if($VMStatus)
             {
-            if(($ExcludeVM_VMStatus -ne "") -and ($ExcludeVM_VMStatus -match $VM.name)){
+						$exclude = $false
+						if(($ExcludeVM_VMStatus -ne "") and ($ExcludeVM_VMStatus -ne $null)){
+							if($VM.name -match $ExcludeVM_VMStatus){
+								$exlude = $true
+								}
+						}
+
+            if(-not $exclude){
                 $OverallStatus = $VM.ExtensionData.OverallStatus
                 if($OverallStatus -eq "green")
                     {
