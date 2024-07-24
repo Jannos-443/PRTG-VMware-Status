@@ -65,20 +65,29 @@
 #>
 param(
     [string] $ViServer = "",
-	  [string] $User = "",
-	  [string] $Password = "",
-    [string] $IgnorePattern = "",
+		[string] $User = "",
+		[string] $Password = '',
+    [string] $ExcludeVMName = '',
     [string] $ExcludeFolder = '',
     [string] $ExcludeRessource = '',
+    [string] $ExcludeVMHost = '',
     [string] $ExcludeVM_VMTools = '',
     [string] $ExcludeVM_VMHeartbeat = '',
     [string] $ExcludeVM_VMStatus = '',
     [string] $ExcludeVM_VMCDConnected = '',
-    [boolean] $VMTools = $True,
-    [boolean] $VMHeartbeat = $True,
-    [boolean] $VMStatus = $True,
-    [boolean] $VMCDConnected = $True,
-    [boolean] $StoragePath = $True
+    [string] $IncludeVMName = '',
+    [string] $IncludeFolder = '',
+    [string] $IncludeRessource = '',
+    [string] $IncludeVMHost = '',
+    [string] $IncludeVM_VMTools = '',
+    [string] $IncludeVM_VMHeartbeat = '',
+    [string] $IncludeVM_VMStatus = '',
+    [string] $IncludeVM_VMCDConnected = '',
+    [switch] $HideVMTools = $False,
+    [switch] $HideVMHeartbeat = $False,
+    [switch] $HideVMStatus = $False,
+    [switch] $HideVMCDConnected = $False,
+    [switch] $HideStoragePath = $False
 )
 
 #Catch all unhandled Errors
