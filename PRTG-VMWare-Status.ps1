@@ -22,7 +22,7 @@
     .PARAMETER Password
     Provide the VCenter Password
 
-    .PARAMETER IgnorePattern
+    .PARAMETER ExcludeVMName
     Regular expression to describe the VM Name to Ignore Alerts and Warnings from.
 
     Example1: ^(Test123|VM3)$ excludes Test123 and VM3
@@ -31,26 +31,26 @@
 
     #https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7.1
     
-		.PARAMETER ExcludeFolder
-		Regular expression to exclude vmware folder
+    .PARAMETER ExcludeFolder
+    Regular expression to exclude vmware folder
 
-		.PARAMETER ExcludeFolder
-		Regular expression to exclude vmware folder
+    .PARAMETER ExcludeFolder
+    Regular expression to exclude vmware folder
 
-		.PARAMETER ExcludeRessource
-		Regular expression to exclude vmware ressource
+    .PARAMETER ExcludeRessource
+    Regular expression to exclude vmware ressource
 
-		.PARAMETER ExcludeVM_VMTools
-		Regular expression to exclude a vm by name from this kind of check
+    .PARAMETER ExcludeVM_VMTools
+    Regular expression to exclude a vm by name from this kind of check
 
-		.PARAMETER ExcludeVM_VMHeartbeat
-		Regular expression to exclude a vm by name from this kind of check
+    .PARAMETER ExcludeVM_VMHeartbeat
+    Regular expression to exclude a vm by name from this kind of check
 
-		.PARAMETER ExcludeVM_VMStatus
-		Regular expression to exclude a vm by name from this kind of check
+    .PARAMETER ExcludeVM_VMStatus
+    Regular expression to exclude a vm by name from this kind of check
 
-		.PARAMETER ExcludeVM_VMCDConnected
-		Regular expression to exclude a vm by name from this kind of check
+    .PARAMETER ExcludeVM_VMCDConnected
+    Regular expression to exclude a vm by name from this kind of check
 
     .EXAMPLE
     Sample call from PRTG EXE/Script Advanced
@@ -65,8 +65,8 @@
 #>
 param(
     [string] $ViServer = "",
-		[string] $User = "",
-		[string] $Password = '',
+    [string] $User = "",
+    [string] $Password = '',
     [string] $ExcludeVMName = '',
     [string] $ExcludeFolder = '',
     [string] $ExcludeRessource = '',
@@ -205,27 +205,55 @@ $PoweredOnVMs = ($VMs | Where-Object {$_.PowerState -eq "PoweredOn"}).Count
 $PoweredOffVMs = ($VMs | Where-Object {$_.PowerState -eq "PoweredOff"}).Count
 $CountVMs = $VMs.Count
 
-#Filter VMs
-
+# Region: VM Filter (Include/Exclude)
 # hardcoded list that applies to all hosts
-$IgnoreScript = '^(TestIgnore)$' 
+$ExcludeVMNameScript = '^(TestIgnore)$' 
+$IncludeVMNameScript = ''
 
-#Remove Ignored VMs
-if ($IgnorePattern -ne "") {
-    $VMs = $VMs | Where-Object {$_.Name -notmatch $IgnorePattern}  
+#VM Name
+if ($ExcludeVMName -ne "") {
+    $VMs = $VMs | Where-Object { $_.Name -notmatch $ExcludeVMName }  
 }
 
-if ($IgnoreScript -ne "") {
-    $VMs = $VMs | Where-Object {$_.Name -notmatch $IgnoreScript}  
+if ($ExcludeVMNameScript -ne "") {
+    $VMs = $VMs | Where-Object { $_.Name -notmatch $ExcludeVMNameScript }  
 }
 
+if ($IncludeVMName -ne "") {
+    $VMs = $VMs | Where-Object { $_.Name -match $IncludeVMName }  
+}
+
+if ($IncludeVMNameScript -ne "") {
+    $VMs = $VMs | Where-Object { $_.Name -match $IncludeVMNameScript }  
+}
+
+#VM Folder
 if ($ExcludeFolder -ne "") {
-    $VMs = $VMs | Where-Object {$_.Folder.Name -notmatch $ExcludeFolder}  
+    $VMs = $VMs | Where-Object { $_.Folder.Name -notmatch $ExcludeFolder }  
 }
 
-if ($ExcludeRessource -ne "") {
-    $VMs = $VMs | Where-Object {$_.ResourcePool.Name -notmatch $ExcludeRessource}  
+if ($IncludeFolder -ne "") {
+    $VMs = $VMs | Where-Object { $_.Folder.Name -match $IncludeFolder }  
 }
+
+#VM Resource
+if ($ExcludeRessource -ne "") {
+    $VMs = $VMs | Where-Object { $_.ResourcePool.Name -notmatch $ExcludeRessource }  
+}
+
+if ($IncludeRessource -ne "") {
+    $VMs = $VMs | Where-Object { $_.ResourcePool.Name -match $IncludeRessource }  
+}
+
+#VM Host
+if ($ExcludeVMHost -ne "") {
+    $VMs = $VMs | Where-Object { $_.VMHost.Name -notmatch $ExcludeVMHost }  
+}
+
+if ($IncludeVMHost -ne "") {
+    $VMs = $VMs | Where-Object { $_.VMHost.Name -match $IncludeVMHost }  
+}
+#End Region VM Filter
 
 #Count VMs
 $CDConnected = New-Object System.Collections.ArrayList
@@ -249,11 +277,16 @@ Foreach ($VM in $VMs)
     if($VM.PowerState -eq "PoweredOn")
         {
         #CD Drive connected
-        if($VMCDConnected)
+        if(-not $HideVMCDConnected)
             {
 						$exclude = $false
 						if(($ExcludeVM_VMCDConnected -ne "") and ($ExcludeVM_VMCDConnected -ne $null)){
 							if($VM.name -match $ExcludeVM_VMCDConnected){
+								$exlude = $true
+								}
+						}
+						if(($IncludeVM_VMCDConnected -ne "") and ($IncludeVM_VMCDConnected -ne $null)){
+							if($VM.name -notmatch $IncludeVM_VMCDConnected){
 								$exlude = $true
 								}
 						}
@@ -268,11 +301,16 @@ Foreach ($VM in $VMs)
             }
 
         #VMWare Tools status
-        if($VMTools)
+        if(-not $HideVMTools)
             {
 						$exclude = $false
 						if(($ExcludeVM_VMTools -ne "") and ($ExcludeVM_VMTools -ne $null)){
 							if($VM.name -match $ExcludeVM_VMTools){
+								$exlude = $true
+								}
+						}
+						if(($IncludeVM_VMTools -ne "") and ($IncludeVM_VMTools -ne $null)){
+							if($VM.name -notmatch $IncludeVM_VMTools){
 								$exlude = $true
 								}
 						}
@@ -288,11 +326,16 @@ Foreach ($VM in $VMs)
             }
         
         #Heartbeat status
-        if($VMHeartbeat)
+        if(-not $HideVMHeartbeat)
             {
 						$exclude = $false
 						if(($ExcludeVM_VMHeartbeat -ne "") and ($ExcludeVM_VMHeartbeat -ne $null)){
 							if($VM.name -match $ExcludeVM_VMHeartbeat){
+								$exlude = $true
+								}
+						}
+						if(($IncludeVM_VMHeartbeat -ne "") and ($IncludeVM_VMHeartbeat -ne $null)){
+							if($VM.name -notmatch $IncludeVM_VMHeartbeat){
 								$exlude = $true
 								}
 						}
@@ -312,11 +355,16 @@ Foreach ($VM in $VMs)
             }
 
         #Overall status
-        if($VMStatus)
+        if(-not $HideVMStatus)
             {
 						$exclude = $false
 						if(($ExcludeVM_VMStatus -ne "") and ($ExcludeVM_VMStatus -ne $null)){
 							if($VM.name -match $ExcludeVM_VMStatus){
+								$exlude = $true
+								}
+						}
+						if(($IncludeVM_VMStatus -ne "") and ($IncludeVM_VMStatus -ne $null)){
+							if($VM.name -notmatch $IncludeVM_VMStatus){
 								$exlude = $true
 								}
 						}
@@ -338,7 +386,7 @@ Foreach ($VM in $VMs)
     }
 
 ## Storage Path Monitoring
-if($StoragePath)
+if(-not $HideStoragePath)
     {
     $EXHosts = Get-VMHost 
     foreach ($EXHost in $EXHosts)
@@ -359,7 +407,7 @@ $xmlOutput = '<prtg>'
 # Output Text
 $OutputText =""
 
-if($VMCDConnected)
+if(-not $HideVMCDConnected)
     {
     if($CDConnected.Count -gt 0)
         {
@@ -367,7 +415,7 @@ if($VMCDConnected)
         }
     }
 
-if($VMTools)
+if(-not $HideVMTools)
     {
     if($ToolsStatusNotOK.Count -gt 0)
         {
@@ -375,7 +423,7 @@ if($VMTools)
         }
     }
 
-if($VMHeartbeat)
+if(-not $HideVMHeartbeat)
     {
     if($heartbeatfail.Count -gt 0)
         {
@@ -384,7 +432,7 @@ if($VMHeartbeat)
     }
 
 
-if($VMStatus)
+if(-not $HideVMStatus)
     {
     if($overallfail.Count -gt 0)
         {
@@ -392,7 +440,7 @@ if($VMStatus)
         }
     }
 
-if($StoragePath)
+if(-not $HideStoragePath)
     {
     if($StoragePathFail.Count -gt 0)
         {
@@ -424,7 +472,7 @@ $xmlOutput = $xmlOutput + "<result>
         <unit>Count</unit>
         </result>"
         
-        if($VMHeartbeat)
+        if(-not $HideVMHeartbeat)
             {
             $xmlOutput = $xmlOutput + "<result>
             <channel>VMs Heartbeat OK</channel>
@@ -441,7 +489,7 @@ $xmlOutput = $xmlOutput + "<result>
             </result>"
             }
 
-        if($VMStatus)
+        if(-not $HideVMStatus)
             {
             $xmlOutput = $xmlOutput + "<result>
             <channel>VMs Status OK</channel>
@@ -458,7 +506,7 @@ $xmlOutput = $xmlOutput + "<result>
             </result>" 
             }
         
-        if($VMCDConnected)
+        if(-not $HideVMCDConnected)
             {
             $xmlOutput = $xmlOutput + "<result>
             <channel>VMs with CD Connected</channel>
@@ -469,7 +517,7 @@ $xmlOutput = $xmlOutput + "<result>
             </result>"
             }
 
-        if($VMTools)
+        if(-not $HideVMTools)
             {
             $xmlOutput = $xmlOutput + "<result>
             <channel>Tools old or not running</channel>
@@ -481,7 +529,7 @@ $xmlOutput = $xmlOutput + "<result>
             }
 
         
-        if($StoragePath)
+        if(-not $HideStoragePath)
             {
             $xmlOutput = $xmlOutput + "<result>
             <channel>Storage Path Failed</channel>
