@@ -55,25 +55,31 @@ Free and open source: [MIT License](https://github.com/Jannos-443/PRTG-VMware-St
 
 ## Usage
 
+Monitor all VMs with all categories
 ```powershell
 -ViServer 'yourVCenterFQDN' -User 'yourUser' -Password 'yourPassword'
 ```
-Monitor all VMs with all categories
 
+<br>
+
+Monitor all VMs with all categories but excludes all VMs starting with "TEST"
 ```powershell
 -ViServer 'yourVCenterFQDN' -User 'yourUser' -Password 'yourPassword' -ExcludeVMName '^(TEST.*)$'
 ```
-Monitor all VMs with all categories but excludes all VMs starting with "TEST"
 
+<br>
+
+Monitor all VMs with all categories but excludes "APPLIANCE1" from VMware Tools monitoring
 ```powershell
 -ViServer 'yourVCenterFQDN' -User 'yourUser' -Password 'yourPassword' -ExcludeVM_VMTools '^(APPLIANCE1)$'
 ```
-Monitor all VMs with all categories but excludes "APPLIANCE1" from VMware Tools monitoring
 
+<br>
+
+Monitor all VMs with but without the "VMwareTool" monitoring
 ```powershell
 -ViServer 'yourVCenterFQDN' -User 'yourUser' -Password 'yourPassword' -HideVMTools
 ```
-Monitor all VMs with but without the "VMwareTool" monitoring
 
 ## Examples
 
