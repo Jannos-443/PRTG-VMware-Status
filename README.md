@@ -34,7 +34,11 @@ Free and open source: [MIT License](https://github.com/Jannos-443/PRTG-VMware-St
 
 2. Place `PRTG-VMware-Snapshot-Status.ps1` under `C:\Program Files (x86)\PRTG Network Monitor\Custom Sensors\EXEXML`
 
-3. Create new Sensor
+3. check if file needs to be unblocked
+    - `Unblock-File C:\Scripts\Script.ps1` 
+      ![unblock](media/unblock.png)
+
+4. Create new Sensor
 
    | Settings | Value |
    | --- | --- |
