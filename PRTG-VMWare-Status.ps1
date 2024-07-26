@@ -273,12 +273,12 @@ Foreach ($VM in $VMs) {
             $exclude = $false
             if (($ExcludeVM_VMCDConnected -ne "") -and ($ExcludeVM_VMCDConnected -ne $null)) {
                 if ($VM.name -match $ExcludeVM_VMCDConnected) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
             if (($IncludeVM_VMCDConnected -ne "") -and ($IncludeVM_VMCDConnected -ne $null)) {
                 if ($VM.name -notmatch $IncludeVM_VMCDConnected) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
 
@@ -295,12 +295,12 @@ Foreach ($VM in $VMs) {
             $exclude = $false
             if (($ExcludeVM_VMTools -ne "") -and ($ExcludeVM_VMTools -ne $null)) {
                 if ($VM.name -match $ExcludeVM_VMTools) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
             if (($IncludeVM_VMTools -ne "") -and ($IncludeVM_VMTools -ne $null)) {
                 if ($VM.name -notmatch $IncludeVM_VMTools) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
 
@@ -318,12 +318,12 @@ Foreach ($VM in $VMs) {
             $exclude = $false
             if (($ExcludeVM_VMHeartbeat -ne "") -and ($ExcludeVM_VMHeartbeat -ne $null)) {
                 if ($VM.name -match $ExcludeVM_VMHeartbeat) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
             if (($IncludeVM_VMHeartbeat -ne "") -and ($IncludeVM_VMHeartbeat -ne $null)) {
                 if ($VM.name -notmatch $IncludeVM_VMHeartbeat) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
 
@@ -344,12 +344,12 @@ Foreach ($VM in $VMs) {
             $exclude = $false
             if (($ExcludeVM_VMStatus -ne "") -and ($ExcludeVM_VMStatus -ne $null)) {
                 if ($VM.name -match $ExcludeVM_VMStatus) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
             if (($IncludeVM_VMStatus -ne "") -and ($IncludeVM_VMStatus -ne $null)) {
                 if ($VM.name -notmatch $IncludeVM_VMStatus) {
-                    $exlude = $true
+                    $exclude = $true
                 }
             }
 
